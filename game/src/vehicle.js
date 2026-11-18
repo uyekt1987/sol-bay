@@ -9,6 +9,10 @@ export const CAR_MODELS = {
   van: { length: 5.2, width: 2.1, height: 1.6, topSpeed: 19, accel: 10, color: 0x8a8a92 },
   sport: { length: 4.2, width: 2.0, height: 0.85, topSpeed: 36, accel: 20, color: 0xe63946 },
   police: { length: 4.4, width: 1.9, height: 1.0, topSpeed: 30, accel: 17, color: 0x1a4fd6 },
+  // New in polish pass: nimble bike, heavy truck, open-top convertible.
+  motor: { length: 2.1, width: 0.8, height: 1.0, topSpeed: 41, accel: 25, color: 0xef476f },
+  truck: { length: 6.6, width: 2.4, height: 2.2, topSpeed: 18, accel: 9, color: 0x118ab2 },
+  convertible: { length: 4.3, width: 2.0, height: 0.8, topSpeed: 34, accel: 19, color: 0xffd166 },
 };
 
 export function buildCarMesh(model, color) {
@@ -16,13 +20,93 @@ export function buildCarMesh(model, color) {
   const g = new THREE.Group();
   const bodyMat = new THREE.MeshLambertMaterial({ color: color ?? spec.color });
   const glassMat = new THREE.MeshLambertMaterial({ color: 0x223344 });
+
+  // Headlights (warm white, emissive) and taillights (red, emissive) on
+  // every vehicle — they read clearly at dusk and from the minimap side.
+  const addLights = (w, h, len) => {
+    const headMat = new THREE.MeshBasicMaterial({ color: 0xfff6c9 });
+    const tailMat = new THREE.MeshBasicMaterial({ color: 0xff2222 });
+    for (const sx of [-1, 1]) {
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.22, 0.08), headMat);
+      head.position.set(sx * (w / 2 - 0.3), h, len / 2 + 0.03);
+      g.add(head);
+      const tail = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.2, 0.08), tailMat);
+      tail.position.set(sx * (w / 2 - 0.3), h, -len / 2 - 0.03);
+      g.add(tail);
+    }
+  };
+  // Dark hubcap disc on the outside face of each wheel.
+  const addHubcap = (wheel, side) => {
+    const hub = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.2, 0.2, 0.32, 10),
+      new THREE.MeshLambertMaterial({ color: 0xbbbbbb }),
+    );
+    hub.rotation.z = Math.PI / 2;
+    wheel.add(hub);
+  };
+
+  if (model === 'motor') {
+    // Two-wheeler: slim tank + seat, handlebar, two spoked-look wheels.
+    const tank = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.4, 1.0), bodyMat);
+    tank.position.y = 0.75; tank.castShadow = true; g.add(tank);
+    const seat = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.18, 0.8), new THREE.MeshLambertMaterial({ color: 0x1a1a1a }));
+    seat.position.set(0, 0.8, -0.55); g.add(seat);
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.07, 0.07), new THREE.MeshLambertMaterial({ color: 0x222222 }));
+    bar.position.set(0, 1.05, 0.75); g.add(bar);
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.22, 0.08), new THREE.MeshBasicMaterial({ color: 0xfff6c9 }));
+    head.position.set(0, 0.85, 1.05); g.add(head);
+    const wheelGeo = new THREE.CylinderGeometry(0.36, 0.36, 0.16, 12);
+    const wheelMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+    const wheels = [];
+    for (const wz of [0.75, -0.75]) {
+      const w = new THREE.Mesh(wheelGeo, wheelMat);
+      w.rotation.z = Math.PI / 2;
+      w.position.set(0, 0.36, wz);
+      g.add(w); wheels.push(w);
+    }
+    return { group: g, wheels, spec };
+  }
+
+  if (model === 'truck') {
+    // Cab up front, tall cargo box behind, chunky wheels.
+    const cargo = new THREE.Mesh(new THREE.BoxGeometry(spec.width, 1.9, 3.6), bodyMat);
+    cargo.position.set(0, 1.35, -1.2); cargo.castShadow = true; g.add(cargo);
+    const cab = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.92, 1.3, 1.7), glassMat);
+    cab.position.set(0, 1.0, 1.9); g.add(cab);
+    const bumper = new THREE.Mesh(new THREE.BoxGeometry(spec.width, 0.35, 0.3), new THREE.MeshLambertMaterial({ color: 0x333333 }));
+    bumper.position.set(0, 0.35, 2.85); g.add(bumper);
+    addLights(spec.width, 0.85, spec.length);
+    const wheelGeo = new THREE.CylinderGeometry(0.48, 0.48, 0.34, 12);
+    const wheelMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+    const wheels = [];
+    for (const [wx, wz] of [[-spec.width / 2, 2.4], [spec.width / 2, 2.4], [-spec.width / 2, -1.2], [spec.width / 2, -1.2], [-spec.width / 2, -2.4], [spec.width / 2, -2.4]]) {
+      const w = new THREE.Mesh(wheelGeo, wheelMat);
+      w.rotation.z = Math.PI / 2;
+      w.position.set(wx, 0.48, wz);
+      g.add(w); addHubcap(w); wheels.push(w);
+    }
+    return { group: g, wheels, spec };
+  }
+
   const body = new THREE.Mesh(new THREE.BoxGeometry(spec.width, spec.height * 0.7, spec.length), bodyMat);
   body.position.y = 0.55;
   body.castShadow = true;
   g.add(body);
-  const cabin = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.85, spec.height * 0.6, spec.length * 0.5), glassMat);
-  cabin.position.set(0, spec.height * 0.95, -spec.length * 0.05);
-  g.add(cabin);
+  if (model === 'convertible') {
+    // Open top: low windshield only, no roof cabin; visible seats inside.
+    const shield = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.85, 0.45, 0.12), glassMat);
+    shield.position.set(0, 1.05, 0.7); g.add(shield);
+    const seatMat = new THREE.MeshLambertMaterial({ color: 0x3a2a1a });
+    for (const sx of [-0.45, 0.45]) {
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.5, 0.6), seatMat);
+      seat.position.set(sx, 0.95, -0.3); g.add(seat);
+    }
+  } else {
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.85, spec.height * 0.6, spec.length * 0.5), glassMat);
+    cabin.position.set(0, spec.height * 0.95, -spec.length * 0.05);
+    g.add(cabin);
+  }
+  addLights(spec.width, 0.55, spec.length);
   const wheelGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.3, 10);
   const wheelMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
   const wheels = [];
@@ -31,6 +115,7 @@ export function buildCarMesh(model, color) {
     w.rotation.z = Math.PI / 2;
     w.position.set(wx, 0.38, wz);
     g.add(w);
+    addHubcap(w);
     wheels.push(w);
   }
   if (model === 'taxi') {
@@ -89,8 +174,12 @@ export function updateVehicleDriving(dt, input, car, city, state) {
   resolveCircleCollision(car.group.position, spec.length / 2, city.colliders);
   car.group.rotation.y = car.yaw;
   for (const w of car.wheels) w.rotation.x += car.speed * dt * 2;
-  if (Math.abs(car.speed) > 12 && Math.random() < dt * 3) {
-    state.effects.spawnDust(car.group.position.x - fx * 2, 0.2, car.group.position.z - fz * 2, 1, 0x999999);
+  // Exhaust puffs from the tailpipe while the engine works, thicker at speed.
+  if (Math.abs(car.speed) > 4 && Math.random() < dt * (car.model === 'truck' ? 14 : 9)) {
+    state.effects.spawnExhaust(car.group.position.x - fx * (spec.length / 2), 0.35, car.group.position.z - fz * (spec.length / 2));
+  }
+  if (Math.abs(car.speed) > 12 && Math.random() < dt * 6) {
+    state.effects.spawnDust(car.group.position.x - fx * 2, 0.2, car.group.position.z - fz * 2, 3, 0xcbb98a);
   }
   return Math.abs(car.speed);
 }

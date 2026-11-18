@@ -13,6 +13,7 @@ export function saveGame(state) {
       ownedCars: state.ownedCars,
       playerPos: [state.player.pos.x, state.player.pos.y, state.player.pos.z],
       clockMinutes: state.clockMinutes,
+      packagesTaken: state.packagesTaken || [],
       savedAt: new Date().toISOString(),
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));

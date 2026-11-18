@@ -19,8 +19,31 @@ export function createEffects(scene) {
       effects.particles.push(m);
     }
   };
-  effects.spawnSmoke = (x, y, z) => effects.spawnDust(x, y, z, 2, 0x777777);
+  effects.spawnSmoke = (x, y, z) => effects.spawnDust(x, y, z, 5, 0x666666);
   effects.spawnBlood = (x, y, z) => effects.spawnDust(x, y, z, 6, 0xcc2222);
+  // Thicker exhaust plume: several grey puffs that rise and grow.
+  effects.spawnExhaust = (x, y, z) => {
+    for (let i = 0; i < 3; i++) {
+      const m = new THREE.Mesh(geo, mat.clone());
+      m.material.color.setHex(0x555555);
+      m.position.set(x + (Math.random() - 0.5) * 0.6, y + Math.random() * 0.3, z + (Math.random() - 0.5) * 0.6);
+      m.scale.setScalar(1.6);
+      m.userData = {
+        vx: (Math.random() - 0.5) * 0.8, vy: Math.random() * 1.6 + 0.8,
+        vz: (Math.random() - 0.5) * 0.8, life: 1.0 + Math.random() * 0.6,
+      };
+      scene.add(m);
+      effects.particles.push(m);
+    }
+  };
+
+  // Gold flash overlay (mission complete) — mirrors the red damage flash.
+  effects.goldFlashEl = document.getElementById('gold-flash');
+  effects.goldFlash = () => {
+    if (!effects.goldFlashEl) return;
+    effects.goldFlashEl.style.opacity = '0.6';
+    setTimeout(() => { effects.goldFlashEl.style.opacity = '0'; }, 450);
+  };
 
   effects.addSkid = (x, z, yaw) => {
     const g = new THREE.PlaneGeometry(0.35, 1.4);

@@ -1,7 +1,7 @@
 // main.js — SOL BAY bootstrap + game loop.
 // Raka Santoso, kurir yang berutang pada Geng Ombak, di kota pantai Sol Bay.
 // Third-person open world: walk, drive, steal cars, police wanted level,
-// 5 story missions, combat, HUD + minimap, save, synthesized WebAudio.
+// 8 story missions, combat, HUD + minimap, save, synthesized WebAudio.
 import * as THREE from 'three';
 import { buildCity, CITY } from './city.js';
 import { createPlayer, updatePlayerOnFoot, updateThirdPersonCamera } from './player.js';
@@ -25,21 +25,38 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb);
-scene.fog = new THREE.Fog(0x9fd4ef, 180, 420);
+// Warm late-afternoon sky: vertical gradient (blue → gold → peach) drawn
+// once on a canvas and used as the scene background.
+{
+  const skyCanvas = document.createElement('canvas');
+  skyCanvas.width = 16; skyCanvas.height = 512;
+  const sctx = skyCanvas.getContext('2d');
+  const grad = sctx.createLinearGradient(0, 0, 0, 512);
+  grad.addColorStop(0, '#5aa9dd');
+  grad.addColorStop(0.45, '#8ec8e8');
+  grad.addColorStop(0.72, '#ffd9a0');
+  grad.addColorStop(1, '#ff9a5c');
+  sctx.fillStyle = grad;
+  sctx.fillRect(0, 0, 16, 512);
+  const skyTex = new THREE.CanvasTexture(skyCanvas);
+  skyTex.colorSpace = THREE.SRGBColorSpace;
+  scene.background = skyTex;
+}
+scene.fog = new THREE.Fog(0xf2c48d, 180, 420);
 
 const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 900);
 camera.position.set(0, 8, 30);
 
-// Sunny midday lighting.
-const sun = new THREE.DirectionalLight(0xfff2d0, 1.6);
-sun.position.set(80, 140, 60);
+// Warm low sun with soft shadows + sky-bounce fill for a sun-soaked coast.
+const sun = new THREE.DirectionalLight(0xffdf9e, 1.9);
+sun.position.set(90, 110, 70);
 sun.castShadow = true;
 sun.shadow.camera.left = -200; sun.shadow.camera.right = 200;
 sun.shadow.camera.top = 200; sun.shadow.camera.bottom = -200;
 sun.shadow.mapSize.set(2048, 2048);
 scene.add(sun);
-scene.add(new THREE.AmbientLight(0xbfd9ff, 0.75));
+scene.add(new THREE.HemisphereLight(0xffe0b3, 0x3a6b4f, 0.55));
+scene.add(new THREE.AmbientLight(0xbfd9ff, 0.55));
 
 // ---- shared game state -------------------------------------------------
 const state = {
@@ -51,6 +68,8 @@ const state = {
   currentCar: null, inCar: false,
   punchCd: 0, saveTimer: 0,
   ownedCars: [],
+  packagesTaken: [], packages: [], courier: { active: false, target: null, label: '', timeLeft: 0 },
+  time: 0,
   player: null, city: null, traffic: null, police: null, combat: null,
   mission: null, effects: null, audio: null, input: null, hud: null, minimap: null,
 };
@@ -78,6 +97,9 @@ state.spawnBossCar = (target) => {
   state.mission.bossCar = boss;
   spawnGangSquad(scene, state.combat, target, 3);
   state.showMessage('Anggota Geng Ombak muncul! Kalahkan mereka!');
+};
+state.spawnGangSquad = (target, count) => {
+  spawnGangSquad(scene, state.combat, target, count);
 };
 
 function respawnPlayer() {
@@ -124,8 +146,91 @@ markerBase.rotation.x = -Math.PI / 2;
 markerBase.position.y = 0.05;
 scene.add(markerBase);
 
-// ---- entering / exiting cars -------------------------------------------
+// ---- hidden packages: 8 "Paket Rahasia" collectibles (+$50 each) -------
+// Fixed spots near landmarks; walk up close and press E to collect.
+const PACKAGE_SPOTS = [
+  [12, 12], [-120, 170], [52, -112], [-52, -112],
+  [-88, -110], [150, 150], [-110, 88], [110, -132],
+];
+for (let i = 0; i < PACKAGE_SPOTS.length; i++) {
+  const [px, pz] = PACKAGE_SPOTS[i];
+  const pkg = new THREE.Group();
+  const box = new THREE.Mesh(
+    new THREE.BoxGeometry(0.8, 0.8, 0.8),
+    new THREE.MeshBasicMaterial({ color: 0x33ddff }),
+  );
+  box.position.y = 0.9;
+  pkg.add(box);
+  const shell = new THREE.Mesh(
+    new THREE.BoxGeometry(1.2, 1.2, 1.2),
+    new THREE.MeshBasicMaterial({ color: 0x33ddff, transparent: true, opacity: 0.25 }),
+  );
+  shell.position.y = 0.9;
+  pkg.add(shell);
+  pkg.position.set(px, 0, pz);
+  scene.add(pkg);
+  state.packages.push({ index: i, pos: new THREE.Vector3(px, 0, pz), mesh: pkg, taken: false });
+}
+
+function tryPickupPackage() {
+  if (state.inCar) return false;
+  for (const p of state.packages) {
+    if (p.taken) continue;
+    if (Math.hypot(p.pos.x - state.player.pos.x, p.pos.z - state.player.pos.z) < 3) {
+      p.taken = true;
+      p.mesh.visible = false;
+      state.packagesTaken.push(p.index);
+      state.money += 50;
+      state.showMessage(`Paket Rahasia ditemukan! +$50 (${state.packagesTaken.length}/8)`);
+      state.audio.pickup();
+      state.saveSoon();
+      return true;
+    }
+  }
+  return false;
+}
+
+// ---- repeatable courier job: "Antar Kilat" (+$80, 60 s) -----------------
+// Unlocks after mission 1; start it with C near the dealer.
+const COURIER_DESTS = [
+  { label: 'Dermaga Selatan', x: 0, z: 175 },
+  { label: 'Pasar Utara', x: -88, z: -110 },
+  { label: 'Pantai Timur', x: 150, z: 150 },
+  { label: 'Hotel Karang', x: 66, z: 110 },
+  { label: 'Gudang Utara', x: 110, z: -132 },
+];
+function startCourier() {
+  if (state.missionIndex < 1) {
+    state.showMessage('Antar Kilat baru buka setelah kamu menyelesaikan misi 1.');
+    return;
+  }
+  if (state.courier.active) return;
+  const dest = COURIER_DESTS[Math.floor(Math.random() * COURIER_DESTS.length)];
+  state.courier = { active: true, target: new THREE.Vector3(dest.x, 0, dest.z), label: dest.label, timeLeft: 60 };
+  state.showMessage(`Antar Kilat: antar ke ${dest.label} dalam 60 detik! (+$80)`);
+  state.audio.pickup();
+}
+function updateCourier(dt) {
+  const c = state.courier;
+  if (!c.active) return;
+  c.timeLeft -= dt;
+  const pos = state.currentCar ? state.currentCar.group.position : state.player.pos;
+  if (Math.hypot(c.target.x - pos.x, c.target.z - pos.z) < 7) {
+    c.active = false;
+    state.money += 80;
+    state.showMessage('Antar Kilat selesai! +$80. Tekan C di dealer untuk antar lagi.');
+    state.audio.cash();
+    state.saveSoon();
+    return;
+  }
+  if (c.timeLeft <= 0) {
+    c.active = false;
+    state.showMessage('Antar Kilat gagal — waktu habis. Coba lagi di dealer.');
+  }
+}
+// ---- entering / exiting cars (edge-triggered keys) ---------------------
 let prevE = false;
+let prevB = false, prevN = false, prevC = false;
 function tryEnterExitCar() {
   if (state.inCar) {
     exitCar(false);
@@ -197,18 +302,26 @@ function beginGame(fromSave) {
     if (data) {
       state.money = data.money;
       state.missionIndex = Math.min(data.missionIndex, MISSIONS.length - 1);
-      state.missionStep = data.missionStep;
       state.player.health = data.health ?? 100;
       state.player.armor = data.armor ?? 50;
       state.ammo = data.ammo ?? 24;
       state.ownedCars = data.ownedCars || [];
+      state.packagesTaken = data.packagesTaken || [];
+      for (const p of state.packages) {
+        if (state.packagesTaken.includes(p.index)) { p.taken = true; p.mesh.visible = false; }
+      }
       if (data.playerPos) state.player.pos.set(data.playerPos[0], 0, data.playerPos[2]);
       state.clockMinutes = data.clockMinutes ?? 480;
       state.showMessage('Save dimuat. Selamat datang kembali di Sol Bay!');
+      // BUG FIX: startMission() resets missionStep to 0, so restore the saved
+      // step AFTER starting the mission (was silently lost before).
+      state._savedStep = data.missionStep || 0;
     }
   } else {
     state.money = 200; state.missionIndex = 0; state.missionStep = 0;
     state.ammo = 24; state.kills = 0; state.wanted = 0;
+    state.packagesTaken = [];
+    for (const p of state.packages) { p.taken = false; p.mesh.visible = true; }
     state.player.health = 100; state.player.armor = 50;
     state.player.pos.set(0, 0, 20);
   }
@@ -216,6 +329,13 @@ function beginGame(fromSave) {
   hudEl.classList.remove('hidden');
   state.mode = 'playing';
   startMission(state, state.missionIndex);
+  if (state._savedStep !== undefined) {
+    const m = MISSIONS[state.missionIndex];
+    state.missionStep = Math.min(state._savedStep, m ? m.steps.length - 1 : 0);
+    const step = m && m.steps[state.missionStep];
+    if (step && step.needKills) state.mission.killsAtStepStart = state.kills;
+    delete state._savedStep;
+  }
 }
 
 document.getElementById('btn-start').addEventListener('click', () => beginGame(false));
@@ -266,14 +386,28 @@ function animate() {
   const dt = Math.min(clock.getDelta(), 0.05);
 
   if (state.mode === 'playing') {
+    state.time += dt;
     state.clockMinutes += dt * 0.6; // a game hour every 100 real seconds
     const step = currentStep(state);
     state.missionTarget = step && step.target ? step.target : null;
 
-    // E to enter/exit a car (edge-triggered).
+    // E to enter/exit a car (edge-triggered); near a package it collects it.
     const eDown = state.input.isDown('e');
-    if (eDown && !prevE) tryEnterExitCar();
+    if (eDown && !prevE) {
+      if (!tryPickupPackage()) tryEnterExitCar();
+    }
     prevE = eDown;
+
+    // Animate the sea foam drifting toward the sand.
+    for (const w of state.city.waves || []) {
+      w.mesh.position.z = w.baseZ + Math.sin(state.time * 0.8 + w.phase) * 2.5;
+    }
+    // Spin + bob the uncollected packages so they catch the eye.
+    for (const p of state.packages) {
+      if (p.taken) continue;
+      p.mesh.rotation.y += dt * 1.5;
+      p.mesh.position.y = Math.sin(state.time * 2 + p.index) * 0.15;
+    }
 
     if (state.inCar && state.currentCar) {
       const speed = updateVehicleDriving(dt, state.input, state.currentCar, state.city, state);
@@ -291,17 +425,34 @@ function animate() {
     }
 
     // Dealer prompt + purchases.
+    // BUG FIX (dealer repeat-buy): purchases are edge-triggered here too —
+    // buyCar()/buyAmmo() run only on the keydown edge (prevB/prevN), and
+    // input.js now ignores e.repeat, so holding B buys exactly once.
     if (nearDealer()) {
-      showHudPrompt(state.hud, 'DEALER MOBIL — tekan B beli mobil sport ($800) · N beli amunisi 24 ($50)');
-      if (state.input.keys.has('b')) { buyCar(); state.input.keys.delete('b'); }
-      if (state.input.keys.has('n')) { buyAmmo(); state.input.keys.delete('n'); }
+      const courierHint = state.missionIndex >= 1 && !state.courier.active ? ' · C Antar Kilat ($80, 60 dtk)' : '';
+      showHudPrompt(state.hud, `DEALER MOBIL — tekan B beli mobil sport ($800) · N beli amunisi 24 ($50)${courierHint}`);
+      const bDown = state.input.keys.has('b');
+      if (bDown && !prevB) buyCar();
+      prevB = bDown;
+      const nDown = state.input.keys.has('n');
+      if (nDown && !prevN) buyAmmo();
+      prevN = nDown;
+      const cDown = state.input.keys.has('c');
+      if (cDown && !prevC) startCourier();
+      prevC = cDown;
     } else {
       showHudPrompt(state.hud, null);
+      prevB = state.input.keys.has('b');
+      prevN = state.input.keys.has('n');
+      prevC = state.input.keys.has('c');
     }
 
     updateTraffic(dt, state.traffic, state.city, state);
     updatePolice(dt, scene, state.police, state);
     updateMissions(dt, state);
+    updateCourier(dt);
+    // A live courier job overrides the mission beacon with its destination.
+    if (state.courier.active) state.missionTarget = state.courier.target;
     updateCombat(dt, scene, state.combat, state);
     state.effects.update(dt);
 

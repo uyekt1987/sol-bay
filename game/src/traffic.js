@@ -6,8 +6,8 @@ import { resolveCircleCollision, CITY } from './city.js';
 
 export function createTraffic(scene, city) {
   const traffic = { cars: [], peds: [] };
-  const models = ['sedan', 'taxi', 'van', 'sedan', 'taxi'];
-  const colors = [0xd94f30, 0x4caf50, 0xeeeeee, 0x7b5ea7, 0x222222];
+  const models = ['sedan', 'taxi', 'van', 'sedan', 'taxi', 'motor', 'truck', 'convertible', 'sedan', 'van'];
+  const colors = [0xd94f30, 0x4caf50, 0xeeeeee, 0x7b5ea7, 0x222222, 0xef476f, 0x118ab2, 0xffd166, 0x06d6a0, 0xf4a261];
   for (let i = 0; i < 10; i++) {
     const road = city.roadLines[Math.floor(Math.random() * city.roadLines.length)];
     const along = -CITY.halfSize + Math.random() * CITY.halfSize * 2;
@@ -18,32 +18,42 @@ export function createTraffic(scene, city) {
     car.ai = { road, dir: Math.random() > 0.5 ? 1 : -1, speed: 7 + Math.random() * 4, wait: 0 };
     traffic.cars.push(car);
   }
-  // Parked cars the player can steal.
-  const parkedModels = ['sedan', 'sport', 'taxi', 'van'];
-  for (let i = 0; i < 6; i++) {
+  // Parked cars the player can steal — now includes the new models.
+  const parkedModels = ['sedan', 'sport', 'taxi', 'van', 'motor', 'convertible', 'truck'];
+  for (let i = 0; i < 7; i++) {
     const p = city.spawnPoints[i];
     const car = createVehicle(scene, parkedModels[i % parkedModels.length], undefined, p.x + 8, p.z + 8, Math.random() * Math.PI * 2, false);
     traffic.cars.push(car);
   }
-  // Pedestrians on sidewalks.
-  const shirtColors = [0xffd166, 0x6ec6ff, 0xff6b9d, 0x9be15d, 0xf4f1de, 0xc792ea];
-  for (let i = 0; i < 16; i++) {
+  // Pedestrians on sidewalks: varied shirt, skin, height and walking speed.
+  const shirtColors = [0xffd166, 0x6ec6ff, 0xff6b9d, 0x9be15d, 0xf4f1de, 0xc792ea, 0xef476f, 0x06d6a0, 0xf4a261, 0x118ab2];
+  const skinColors = [0xd9a066, 0xc98d5f, 0xe8b98a, 0x8d5a3b, 0xf0c8a0];
+  const pantsColors = [0x333344, 0x2a4a6b, 0x5a3a2a, 0x222222, 0x6b7c8d];
+  for (let i = 0; i < 20; i++) {
     const g = new THREE.Group();
+    const hScale = 0.85 + Math.random() * 0.35;
     const shirt = new THREE.MeshLambertMaterial({ color: shirtColors[i % shirtColors.length] });
     const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.85, 0.35), shirt);
     body.position.y = 1.1; g.add(body);
-    const head = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.42, 0.42), new THREE.MeshLambertMaterial({ color: 0xd9a066 }));
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.42, 0.42), new THREE.MeshLambertMaterial({ color: skinColors[i % skinColors.length] }));
     head.position.y = 1.8; g.add(head);
-    const legL = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.7, 0.26), new THREE.MeshLambertMaterial({ color: 0x333344 }));
+    const pants = new THREE.MeshLambertMaterial({ color: pantsColors[i % pantsColors.length] });
+    const legL = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.7, 0.26), pants);
     legL.position.set(-0.15, 0.35, 0); g.add(legL);
     const legR = legL.clone(); legR.position.x = 0.15; g.add(legR);
+    // A few pedestrians wear a hat.
+    if (i % 5 === 2) {
+      const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.38, 0.1, 8), new THREE.MeshLambertMaterial({ color: 0xf4ead8 }));
+      hat.position.y = 2.05; g.add(hat);
+    }
     const x = (Math.random() - 0.5) * CITY.halfSize * 2;
     const z = (Math.random() - 0.5) * CITY.halfSize * 2;
     g.position.set(x, 0, z);
+    g.scale.setScalar(hScale);
     scene.add(g);
     traffic.peds.push({
       group: g, legL, legR, pos: g.position,
-      dir: Math.random() * Math.PI * 2, speed: 1.4 + Math.random(), phase: Math.random() * 6,
+      dir: Math.random() * Math.PI * 2, speed: 1.1 + Math.random() * 1.3, phase: Math.random() * 6,
       fleeing: false, alive: true,
     });
   }

@@ -43,6 +43,9 @@
   #hud-message { margin-top: 8px; font-size: 15px; color: #fff; opacity: 0; transition: opacity .3s; }
   #hud-prompt { display: none; position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,.65); padding: 8px 16px; border-radius: 8px; font-size: 15px; }
   #damage-flash { position: fixed; inset: 0; z-index: 20; pointer-events: none; background: radial-gradient(ellipse at center, transparent 40%, rgba(255,0,0,.8) 100%); opacity: 0; transition: opacity .15s; }
+  #gold-flash { position: fixed; inset: 0; z-index: 20; pointer-events: none; background: radial-gradient(ellipse at center, transparent 30%, rgba(255,215,0,.85) 100%); opacity: 0; transition: opacity .3s; }
+  #hud-courier { font-size: 15px; font-weight: 700; color: #7dff8a; margin-top: 4px; }
+  #hud-timer { font-size: 15px; font-weight: 700; color: #ffb347; margin-top: 2px; }
   #pause-screen { position: fixed; inset: 0; z-index: 30; display: none; align-items: center; justify-content: center; flex-direction: column; background: rgba(0,0,0,.6); color: #fff; }
   #pause-screen h1 { font-size: 48px; margin-bottom: 20px; }
   #crosshair { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%); z-index: 11; color: #fff; font-size: 22px; pointer-events: none; text-shadow: 0 0 4px #000; }
@@ -55,6 +58,7 @@
 <canvas id="game-canvas"></canvas>
 <div id="crosshair">+</div>
 <div id="damage-flash"></div>
+<div id="gold-flash"></div>
 
 <div id="hud" class="hidden">
   <div id="hud-top-left">
@@ -63,6 +67,7 @@
     <div class="bar-row">Health <span id="hud-health">100</span> <span class="bar"><div id="health-bar"></div></span></div>
     <div class="bar-row">Armor <span id="hud-armor">50</span> <span class="bar"><div id="armor-bar"></div></span></div>
     <div class="bar-row">Amunisi: <span id="hud-ammo">24</span></div>
+    <div class="bar-row">Paket Rahasia: <span id="hud-packages">0/8</span> <span style="font-size:12px;opacity:.8">(E untuk ambil)</span></div>
   </div>
   <div id="hud-top-right">
     <canvas id="minimap" width="180" height="180"></canvas>
@@ -70,8 +75,10 @@
   </div>
   <div id="hud-bottom-left"><div id="hud-speed"></div></div>
   <div id="hud-bottom-center">
-    <div id="hud-mission">MISI 1/5</div>
+    <div id="hud-mission">MISI 1/8</div>
     <div id="hud-objective"></div>
+    <div id="hud-courier"></div>
+    <div id="hud-timer"></div>
     <div id="hud-message"></div>
   </div>
   <div id="hud-prompt"></div>
@@ -82,7 +89,8 @@
   <h1>SOL BAY</h1>
   <h2>Kota pantai yang panas. Utang yang harus dibayar. Satu nama: Raka Santoso.</h2>
   <div class="sub">Jelajahi kota Sol Bay dengan berjalan kaki atau mencuri mobil, kabur dari polisi,
-    dan selesaikan 5 misi untuk mengalahkan Geng Ombak. Dimainkan dengan keyboard + mouse —
+    dan selesaikan 8 misi untuk mengalahkan Geng Ombak. Cari 8 Paket Rahasia tersembunyi (+$50)
+    dan ambil kerja Antar Kilat di dealer (+$80). Dimainkan dengan keyboard + mouse —
     klik MULAI, kamera bisa digerakkan dengan mouse (drag bila pointer lock tidak tersedia).</div>
   <div>
     <button class="btn" id="btn-start">▶ MULAI</button>
@@ -95,6 +103,7 @@
     <b>E</b> masuk / keluar mobil &nbsp;·&nbsp; <b>W/S</b> gas / rem, <b>A/D</b> belok<br>
     <b>F</b> pukul &nbsp;·&nbsp; <b>Klik kiri</b> tembak pistol<br>
     <b>B</b> beli mobil di dealer ($800) &nbsp;·&nbsp; <b>N</b> beli amunisi di dealer ($50)<br>
+    <b>C</b> ambil kerja Antar Kilat di dealer (setelah misi 1, +$80, 60 detik) &nbsp;·&nbsp; <b>E</b> ambil Paket Rahasia<br>
     <b>Esc</b> pause &nbsp;·&nbsp; <b>M</b> mute suara &nbsp;·&nbsp; Hindari polisi saat wanted naik!
   </div>
 </div>

@@ -1,6 +1,6 @@
 // hud.js — the SOL BAY heads-up display: money, health, armor, wanted
 // stars, ammo, speed, mission objective, clock, dialogs and messages.
-import { missionObjectiveText, currentMission } from './missions.js';
+import { missionObjectiveText, currentMission, MISSIONS } from './missions.js';
 
 export function createHud() {
   const el = (id) => document.getElementById(id);
@@ -11,6 +11,7 @@ export function createHud() {
     clock: el('hud-clock'), message: el('hud-message'), dialog: el('dialog-box'),
     dialogTitle: el('dialog-title'), dialogText: el('dialog-text'),
     prompt: el('hud-prompt'), missionLabel: el('hud-mission'),
+    packages: el('hud-packages'), courier: el('hud-courier'), timer: el('hud-timer'),
   };
 }
 
@@ -27,10 +28,24 @@ export function updateHud(hud, state) {
   hud.speed.textContent = state.currentCar ? `${Math.round(speed)} km/h` : '';
   hud.objective.textContent = missionObjectiveText(state);
   const m = currentMission(state);
-  hud.missionLabel.textContent = m ? `MISI ${state.missionIndex + 1}/5: ${m.title}` : 'SEMUA MISI SELESAI';
+  hud.missionLabel.textContent = m ? `MISI ${state.missionIndex + 1}/${MISSIONS.length}: ${m.title}` : 'SEMUA MISI SELESAI';
   const hh = Math.floor(state.clockMinutes / 60) % 24;
   const mm = Math.floor(state.clockMinutes % 60);
   hud.clock.textContent = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+  // Hidden-package counter (8 total) and the repeatable courier job.
+  if (hud.packages) hud.packages.textContent = `${(state.packagesTaken || []).length}/8`;
+  if (hud.courier) {
+    const c = state.courier;
+    hud.courier.textContent = c && c.active
+      ? `ANTAR KILAT → ${c.label}: ${Math.ceil(c.timeLeft)} dtk (+$80)`
+      : '';
+  }
+  if (hud.timer) {
+    const tl = state.mission ? state.mission.timeLeft : null;
+    hud.timer.textContent = tl !== null && tl !== undefined
+      ? `⏱ Waktu misi: ${Math.ceil(tl)} dtk`
+      : '';
+  }
 }
 
 export function showHudMessage(hud, text) {

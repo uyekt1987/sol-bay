@@ -17,6 +17,10 @@ export function createInput(canvas) {
   const keyName = (e) => (e.code.startsWith('Key') ? e.code.slice(3).toLowerCase() : e.code);
 
   window.addEventListener('keydown', (e) => {
+    // BUG FIX (dealer repeat-buy): ignore OS key auto-repeat. Without this,
+    // holding B re-adds 'b' to the Set after main.js deletes it, so buyCar()
+    // fired every repeat tick. A held key must never re-trigger an action.
+    if (e.repeat) return;
     if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
     input.keys.add(keyName(e));
     input.keys.add(e.code);

@@ -57,6 +57,27 @@ export function drawMinimap(minimap, state) {
     ctx.fillStyle = '#ff4444';
     ctx.beginPath(); ctx.arc(px, py, 3, 0, Math.PI * 2); ctx.fill();
   }
+  // Roadblock cars (orange) and the active courier destination (green).
+  for (const car of state.police.roadblock || []) {
+    const [px, py] = toMap(minimap, car.group.position.x, car.group.position.z);
+    ctx.fillStyle = '#ff8800';
+    ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI * 2); ctx.fill();
+  }
+  if (state.courier && state.courier.active && state.courier.target) {
+    const [cx, cy] = toMap(minimap, state.courier.target.x, state.courier.target.z);
+    ctx.fillStyle = '#7dff8a';
+    ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5; ctx.stroke();
+  }
+  // Uncollected hidden packages (small cyan dots).
+  if (state.packages) {
+    ctx.fillStyle = '#33ddff';
+    for (const p of state.packages) {
+      if (p.taken) continue;
+      const [px, py] = toMap(minimap, p.pos.x, p.pos.z);
+      ctx.beginPath(); ctx.arc(px, py, 2.5, 0, Math.PI * 2); ctx.fill();
+    }
+  }
   // Player arrow (white, rotated by camera yaw).
   const playerPos = state.currentCar ? state.currentCar.group.position : state.player.pos;
   const [px, py] = toMap(minimap, playerPos.x, playerPos.z);
