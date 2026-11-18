@@ -1,5 +1,5 @@
 // missions.js — the SOL BAY story: Raka Santoso owes the Ombak gang.
-// Eight missions in order, each with dialogue, objectives and cash rewards.
+// Eleven missions in order, each with dialogue, objectives and cash rewards.
 import * as THREE from 'three';
 
 export const MISSIONS = [
@@ -71,6 +71,38 @@ export const MISSIONS = [
       { text: 'Kalahkan penjaga markas (4 orang)', target: new THREE.Vector3(110, 0, -132), radius: 18, needKills: 4 },
       { text: 'Ambil uang hasil jarahan di dalam markas', target: new THREE.Vector3(118, 0, -140), radius: 6 },
       { text: 'Kembali ke Mira — Geng Ombak tamat', target: new THREE.Vector3(-40, 0, -60), radius: 8 },
+    ],
+  },
+  {
+    id: 'm9', title: 'Pelabuhan Gelap', reward: 1200,
+    intro: 'Mira: "Bos Ombak kabur dari markas utara — anak buahnya menyelundupkan senjata lewat Pelabuhan Sol Bay yang baru. Selidiki dermaganya, Raka!"',
+    steps: [
+      { text: 'Selidiki gerbang Pelabuhan Sol Bay', target: new THREE.Vector3(120, 0, 168), radius: 8, spawnGang: 3 },
+      { text: 'Kalahkan penyelundup Geng Ombak (3 orang)', target: new THREE.Vector3(120, 0, 168), radius: 16, needKills: 3 },
+      { text: 'Periksa kontainer mencurigakan di dermaga', target: new THREE.Vector3(150, 0, 185), radius: 6 },
+      { text: 'Lapor kembali ke bengkel Mira', target: new THREE.Vector3(-40, 0, -60), radius: 8 },
+    ],
+  },
+  {
+    id: 'm10', title: 'Balapan Liar', reward: 1500, timeLimit: 180,
+    intro: 'Raka: "Pembalap Geng Ombak menantangku balapan jalanan keliling kota. Menang, dan jalanan Sol Bay milik kita."',
+    steps: [
+      { text: 'Ke garis start di dermaga selatan — balapan dimulai!', target: new THREE.Vector3(0, 0, 175), radius: 8, spawnGang: 2 },
+      { text: 'Checkpoint 1: pantai timur', target: new THREE.Vector3(150, 0, 150), radius: 9 },
+      { text: 'Checkpoint 2: gudang utara', target: new THREE.Vector3(110, 0, -132), radius: 9 },
+      { text: 'Checkpoint 3: Pelabuhan Sol Bay', target: new THREE.Vector3(140, 0, 185), radius: 9 },
+      { text: 'Finis! Kembali ke bengkel Mira sebagai juara', target: new THREE.Vector3(-40, 0, -60), radius: 8 },
+    ],
+  },
+  {
+    id: 'm11', title: 'Jatuhnya Bos Ombak', reward: 2500,
+    intro: 'Mira: "Ini akhirnya, Raka. Bos Ombak bersembunyi di ujung dermaga pelabuhan dengan pengawal terakhirnya. Akhiri semua ini."',
+    steps: [
+      { text: 'Serbu markas terakhir di Pelabuhan Sol Bay', target: new THREE.Vector3(140, 0, 185), radius: 10, spawnGang: 5 },
+      { text: 'Kalahkan pengawal pelabuhan (5 orang)', target: new THREE.Vector3(140, 0, 185), radius: 18, needKills: 5 },
+      { text: 'Hadapi Bos Ombak di ujung dermaga', target: new THREE.Vector3(150, 0, 198), radius: 7, spawnGang: 2 },
+      { text: 'Kalahkan Bos Ombak dan pengawalnya (2 orang)', target: new THREE.Vector3(150, 0, 198), radius: 16, needKills: 2 },
+      { text: 'Kembali ke Mira — SOL BAY benar-benar bebas', target: new THREE.Vector3(-40, 0, -60), radius: 8 },
     ],
   },
 ];

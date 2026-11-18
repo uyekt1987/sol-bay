@@ -1,7 +1,7 @@
 // main.js — SOL BAY bootstrap + game loop.
 // Raka Santoso, kurir yang berutang pada Geng Ombak, di kota pantai Sol Bay.
 // Third-person open world: walk, drive, steal cars, police wanted level,
-// 8 story missions, combat, HUD + minimap, save, synthesized WebAudio.
+// 11 story missions, combat, HUD + minimap, save, synthesized WebAudio.
 import * as THREE from 'three';
 import { buildCity, CITY } from './city.js';
 import { createPlayer, updatePlayerOnFoot, updateThirdPersonCamera } from './player.js';
@@ -146,11 +146,13 @@ markerBase.rotation.x = -Math.PI / 2;
 markerBase.position.y = 0.05;
 scene.add(markerBase);
 
-// ---- hidden packages: 8 "Paket Rahasia" collectibles (+$50 each) -------
+// ---- hidden packages: 12 "Paket Rahasia" collectibles (+$50 each) -------
 // Fixed spots near landmarks; walk up close and press E to collect.
 const PACKAGE_SPOTS = [
   [12, 12], [-120, 170], [52, -112], [-52, -112],
   [-88, -110], [150, 150], [-110, 88], [110, -132],
+  // New in polish pass: two at the harbour, two on quiet roads.
+  [128, 192], [165, 178], [22, -140], [-22, 140],
 ];
 for (let i = 0; i < PACKAGE_SPOTS.length; i++) {
   const [px, pz] = PACKAGE_SPOTS[i];
@@ -181,7 +183,7 @@ function tryPickupPackage() {
       p.mesh.visible = false;
       state.packagesTaken.push(p.index);
       state.money += 50;
-      state.showMessage(`Paket Rahasia ditemukan! +$50 (${state.packagesTaken.length}/8)`);
+      state.showMessage(`Paket Rahasia ditemukan! +$50 (${state.packagesTaken.length}/12)`);
       state.audio.pickup();
       state.saveSoon();
       return true;
@@ -198,6 +200,8 @@ const COURIER_DESTS = [
   { label: 'Pantai Timur', x: 150, z: 150 },
   { label: 'Hotel Karang', x: 66, z: 110 },
   { label: 'Gudang Utara', x: 110, z: -132 },
+  { label: 'Pelabuhan Sol Bay', x: 140, z: 185 },
+  { label: 'Pantai Selatan', x: -60, z: 175 },
 ];
 function startCourier() {
   if (state.missionIndex < 1) {
@@ -493,5 +497,5 @@ function animate() {
 animate();
 
 // Exposed for automated play-testing / screenshots.
-window.__solbay = { state, THREE };
+window.__solbay = { state, THREE, startMission };
 window.__shotReady = true;

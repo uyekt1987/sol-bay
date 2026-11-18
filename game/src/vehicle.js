@@ -13,6 +13,8 @@ export const CAR_MODELS = {
   motor: { length: 2.1, width: 0.8, height: 1.0, topSpeed: 41, accel: 25, color: 0xef476f },
   truck: { length: 6.6, width: 2.4, height: 2.2, topSpeed: 18, accel: 9, color: 0x118ab2 },
   convertible: { length: 4.3, width: 2.0, height: 0.8, topSpeed: 34, accel: 19, color: 0xffd166 },
+  // Resubmit 3: city bus — slow, long, roomy; same arcade physics as cars.
+  bus: { length: 7.6, width: 2.5, height: 2.6, topSpeed: 20, accel: 9, color: 0x06a77d },
 };
 
 export function buildCarMesh(model, color) {
@@ -63,6 +65,29 @@ export function buildCarMesh(model, color) {
       w.rotation.z = Math.PI / 2;
       w.position.set(0, 0.36, wz);
       g.add(w); wheels.push(w);
+    }
+    return { group: g, wheels, spec };
+  }
+
+  if (model === 'bus') {
+    // City bus: tall body, dark window band, white roof stripe, 6 wheels.
+    const bodyBus = new THREE.Mesh(new THREE.BoxGeometry(spec.width, 2.2, spec.length), bodyMat);
+    bodyBus.position.y = 1.35; bodyBus.castShadow = true; g.add(bodyBus);
+    const windows = new THREE.Mesh(new THREE.BoxGeometry(spec.width + 0.06, 0.7, spec.length * 0.82), glassMat);
+    windows.position.y = 1.9; g.add(windows);
+    const roofStripe = new THREE.Mesh(new THREE.BoxGeometry(spec.width + 0.04, 0.18, spec.length), new THREE.MeshLambertMaterial({ color: 0xf4ead8 }));
+    roofStripe.position.y = 2.5; g.add(roofStripe);
+    const dest = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.35, 0.1), new THREE.MeshBasicMaterial({ color: 0xffe14d }));
+    dest.position.set(0, 2.35, spec.length / 2 + 0.03); g.add(dest);
+    addLights(spec.width, 0.6, spec.length);
+    const wheelGeo = new THREE.CylinderGeometry(0.48, 0.48, 0.34, 12);
+    const wheelMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+    const wheels = [];
+    for (const [wx, wz] of [[-spec.width / 2, 2.6], [spec.width / 2, 2.6], [-spec.width / 2, -1.4], [spec.width / 2, -1.4], [-spec.width / 2, -2.8], [spec.width / 2, -2.8]]) {
+      const w = new THREE.Mesh(wheelGeo, wheelMat);
+      w.rotation.z = Math.PI / 2;
+      w.position.set(wx, 0.48, wz);
+      g.add(w); addHubcap(w); wheels.push(w);
     }
     return { group: g, wheels, spec };
   }

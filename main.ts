@@ -5,7 +5,7 @@
 // /output/dossier.json, the summary the judge reads, with the vendored make.fun library.
 // SOL BAY is an original open-world crime game: Raka Santoso, a courier in debt to the Ombak
 // gang, explores the sun-soaked beach city of Sol Bay on foot and by car, steals cars, outruns
-// the police wanted system, fights gang members, and completes 5 story missions with Mira the
+// the police wanted system, fights gang members, and completes 11 story missions with Mira the
 // mechanic — with a HUD, minimap, save game, synthesized WebAudio sound and a start screen that
 // needs no pointer lock to play. All names, characters and places are original.
 //

@@ -6,8 +6,8 @@ import { resolveCircleCollision, CITY } from './city.js';
 
 export function createTraffic(scene, city) {
   const traffic = { cars: [], peds: [] };
-  const models = ['sedan', 'taxi', 'van', 'sedan', 'taxi', 'motor', 'truck', 'convertible', 'sedan', 'van'];
-  const colors = [0xd94f30, 0x4caf50, 0xeeeeee, 0x7b5ea7, 0x222222, 0xef476f, 0x118ab2, 0xffd166, 0x06d6a0, 0xf4a261];
+  const models = ['sedan', 'taxi', 'van', 'sedan', 'taxi', 'motor', 'truck', 'convertible', 'bus', 'van'];
+  const colors = [0xd94f30, 0x4caf50, 0xeeeeee, 0x7b5ea7, 0x222222, 0xef476f, 0x118ab2, 0xffd166, 0x06a77d, 0xf4a261];
   for (let i = 0; i < 10; i++) {
     const road = city.roadLines[Math.floor(Math.random() * city.roadLines.length)];
     const along = -CITY.halfSize + Math.random() * CITY.halfSize * 2;
@@ -19,8 +19,8 @@ export function createTraffic(scene, city) {
     traffic.cars.push(car);
   }
   // Parked cars the player can steal — now includes the new models.
-  const parkedModels = ['sedan', 'sport', 'taxi', 'van', 'motor', 'convertible', 'truck'];
-  for (let i = 0; i < 7; i++) {
+  const parkedModels = ['sedan', 'sport', 'taxi', 'van', 'motor', 'convertible', 'truck', 'bus'];
+  for (let i = 0; i < 8; i++) {
     const p = city.spawnPoints[i];
     const car = createVehicle(scene, parkedModels[i % parkedModels.length], undefined, p.x + 8, p.z + 8, Math.random() * Math.PI * 2, false);
     traffic.cars.push(car);

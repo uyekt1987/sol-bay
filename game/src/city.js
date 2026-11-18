@@ -320,6 +320,111 @@ export function buildCity(scene) {
     scene.add(top);
   }
 
+  // ---- PELABUHAN SOL BAY (new district, south-east coast) --------------
+  // Concrete apron, container yard, two gantry cranes, a wooden pier and
+  // a cargo ship anchored in the bay. Missions m9/m10/m11 play here.
+  city.harborCenter = new THREE.Vector3(140, 0, 185);
+  const apron = new THREE.Mesh(
+    new THREE.PlaneGeometry(84, 42),
+    new THREE.MeshLambertMaterial({ color: 0x8d8d85 }),
+  );
+  apron.rotation.x = -Math.PI / 2;
+  apron.position.set(141, 0.02, 183);
+  scene.add(apron);
+  // Pier deck jutting into the sea, with a striped edge.
+  const pier = new THREE.Mesh(
+    new THREE.BoxGeometry(24, 0.5, 26),
+    new THREE.MeshLambertMaterial({ color: 0x9c7a52 }),
+  );
+  pier.position.set(140, 0.25, 192);
+  scene.add(pier);
+  const pierEdge = new THREE.Mesh(
+    new THREE.BoxGeometry(24, 0.15, 1),
+    new THREE.MeshBasicMaterial({ color: 0xffe14d }),
+  );
+  pierEdge.position.set(140, 0.55, 204);
+  scene.add(pierEdge);
+  // Container yard: colourful stacked boxes on the west side of the apron.
+  const containerColors = [0xef476f, 0x118ab2, 0xffd166, 0x06d6a0, 0xe76f51, 0x2a9d8f];
+  const containerSpots = [
+    [106, 170, 0], [114, 170, 1], [122, 170, 0], [106, 178, 1],
+    [114, 178, 0], [122, 178, 0],
+  ];
+  for (let i = 0; i < containerSpots.length; i++) {
+    const [cx, cz, stacked] = containerSpots[i];
+    const col = containerColors[i % containerColors.length];
+    const cont = new THREE.Mesh(boxGeo, new THREE.MeshLambertMaterial({ color: col }));
+    cont.scale.set(6, 2.6, 2.6);
+    cont.position.set(cx, 1.3, cz);
+    cont.castShadow = true;
+    scene.add(cont);
+    city.colliders.push({ minX: cx - 3, maxX: cx + 3, minZ: cz - 1.3, maxZ: cz + 1.3 });
+    if (stacked) {
+      const top = new THREE.Mesh(boxGeo, new THREE.MeshLambertMaterial({ color: containerColors[(i + 2) % containerColors.length] }));
+      top.scale.set(6, 2.6, 2.6);
+      top.position.set(cx, 3.9, cz);
+      top.castShadow = true;
+      scene.add(top);
+    }
+  }
+  // Two gantry cranes over the pier, with jib + hanging hook.
+  const craneMat = new THREE.MeshLambertMaterial({ color: 0xffb703 });
+  const addCrane = (x, z) => {
+    const g = new THREE.Group();
+    for (const [lx, lz] of [[-3, -2], [3, -2], [-3, 2], [3, 2]]) {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.8, 16, 0.8), craneMat);
+      leg.position.set(lx, 8, lz);
+      g.add(leg);
+    }
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(9, 1.2, 6), craneMat);
+    beam.position.y = 16.5;
+    g.add(beam);
+    const jib = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 20), craneMat);
+    jib.position.set(0, 17.5, 6);
+    g.add(jib);
+    const cable = new THREE.Mesh(new THREE.BoxGeometry(0.12, 6, 0.12), new THREE.MeshLambertMaterial({ color: 0x222222 }));
+    cable.position.set(0, 13.5, 12);
+    g.add(cable);
+    const hook = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ color: 0x333333 }));
+    hook.position.set(0, 10.2, 12);
+    g.add(hook);
+    g.position.set(x, 0, z);
+    scene.add(g);
+    city.colliders.push({ minX: x - 3.5, maxX: x + 3.5, minZ: z - 2.5, maxZ: z + 2.5 });
+  };
+  addCrane(108, 190);
+  addCrane(172, 190);
+  // Cargo ship anchored in the bay, loaded with containers.
+  const ship = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.BoxGeometry(12, 4, 34), new THREE.MeshLambertMaterial({ color: 0x1d3557 }));
+  hull.position.y = 1.2;
+  ship.add(hull);
+  const bow = new THREE.Mesh(new THREE.ConeGeometry(6, 8, 4), new THREE.MeshLambertMaterial({ color: 0x1d3557 }));
+  bow.rotation.x = Math.PI / 2; bow.rotation.y = Math.PI / 4;
+  bow.position.set(0, 1.2, 21);
+  ship.add(bow);
+  const bridge = new THREE.Mesh(new THREE.BoxGeometry(9, 5, 5), new THREE.MeshLambertMaterial({ color: 0xf4ead8 }));
+  bridge.position.set(0, 5.5, -12);
+  ship.add(bridge);
+  for (let i = 0; i < 4; i++) {
+    const sc = new THREE.Mesh(boxGeo, new THREE.MeshLambertMaterial({ color: containerColors[i % containerColors.length] }));
+    sc.scale.set(9, 2.4, 3.4);
+    sc.position.set(0, 4.4, -4 + i * 4.2);
+    ship.add(sc);
+  }
+  ship.position.set(140, 0, 224);
+  scene.add(ship);
+  // Harbour sign on the east side of the apron, clear of the city blocks
+  // behind it so it reads from the pier.
+  makeSign(scene, 'PELABUHAN SOL BAY', 0x33ddff, 162, 168);
+  const barrelMat = new THREE.MeshLambertMaterial({ color: 0xdd6b20 });
+  for (const [bx, bz] of [[156, 172], [158, 174], [157, 176], [130, 196], [132, 196]]) {
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 1.6, 10), barrelMat);
+    barrel.position.set(bx, 0.8, bz);
+    scene.add(barrel);
+  }
+  for (let i = 0; i < 5; i++) addPalm(104 + i * 18, 200);
+
   // Parked cars' spawn points on roads (used by traffic + missions).
   for (let i = 0; i < 10; i++) {
     city.spawnPoints.push(new THREE.Vector3(-half + Math.floor(rand() * CITY.blocks) * step, 0, -half + Math.floor(rand() * CITY.blocks) * step));
@@ -333,7 +438,12 @@ function makeSign(scene, text, color, x, z) {
   const c = canvas.getContext('2d');
   c.fillStyle = '#222226'; c.fillRect(0, 0, 512, 128);
   c.fillStyle = '#' + color.toString(16).padStart(6, '0');
-  c.font = 'bold 64px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+  // Auto-fit long labels (e.g. "PELABUHAN SOL BAY") inside the sign.
+  let fontSize = 64;
+  c.font = `bold ${fontSize}px sans-serif`;
+  const tw = c.measureText(text).width;
+  if (tw > 480) { fontSize = Math.floor(64 * 480 / tw); c.font = `bold ${fontSize}px sans-serif`; }
+  c.textAlign = 'center'; c.textBaseline = 'middle';
   c.fillText(text, 256, 66);
   const tex = new THREE.CanvasTexture(canvas);
   const mesh = new THREE.Mesh(

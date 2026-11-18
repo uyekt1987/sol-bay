@@ -33,7 +33,7 @@ export function updateHud(hud, state) {
   const mm = Math.floor(state.clockMinutes % 60);
   hud.clock.textContent = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
   // Hidden-package counter (8 total) and the repeatable courier job.
-  if (hud.packages) hud.packages.textContent = `${(state.packagesTaken || []).length}/8`;
+  if (hud.packages) hud.packages.textContent = `${(state.packagesTaken || []).length}/12`;
   if (hud.courier) {
     const c = state.courier;
     hud.courier.textContent = c && c.active
