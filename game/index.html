@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>SOL BAY — Open World Crime</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #87ceeb; font-family: 'Segoe UI', Arial, sans-serif; }
+  #game-canvas { display: block; width: 100%; height: 100%; }
+  .hidden { display: none !important; }
+  /* Start screen */
+  #start-screen { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(160deg, #ff9a3c 0%, #ff5a3c 45%, #2e6fb0 100%); color: #fff; text-align: center; }
+  #start-screen h1 { font-size: 84px; letter-spacing: 6px; text-shadow: 0 4px 0 #7a2a00, 0 8px 24px rgba(0,0,0,.4); }
+  #start-screen h2 { font-size: 20px; font-weight: 400; margin: 8px 0 28px; opacity: .95; }
+  #start-screen .sub { max-width: 560px; font-size: 15px; line-height: 1.5; opacity: .9; margin-bottom: 24px; }
+  .btn { display: inline-block; background: #ffe14d; color: #222; border: none; border-radius: 10px; padding: 14px 34px; font-size: 20px; font-weight: 700; cursor: pointer; margin: 6px; box-shadow: 0 4px 0 #b89a00; }
+  .btn:hover { filter: brightness(1.08); }
+  .btn.secondary { background: #ffffff; box-shadow: 0 4px 0 #999; font-size: 17px; padding: 11px 26px; }
+  #howto { display: none; max-width: 620px; background: rgba(0,0,0,.45); border-radius: 12px; padding: 18px 22px; text-align: left; font-size: 14px; line-height: 1.7; margin-top: 10px; }
+  /* HUD */
+  #hud { position: fixed; inset: 0; z-index: 10; pointer-events: none; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.8); }
+  #hud-top-left { position: absolute; top: 12px; left: 14px; font-size: 18px; }
+  #hud-money { font-size: 30px; font-weight: 800; color: #7dff8a; }
+  #hud-wanted { font-size: 26px; letter-spacing: 3px; margin-top: 2px; }
+  .bar-row { margin-top: 6px; font-size: 14px; }
+  .bar { display: inline-block; width: 150px; height: 12px; background: rgba(0,0,0,.55); border-radius: 6px; vertical-align: middle; overflow: hidden; }
+  .bar > div { height: 100%; }
+  #health-bar { background: #37d67a; width: 100%; }
+  #armor-bar { background: #4aa8ff; width: 50%; }
+  #dialog-box { display: none; position: absolute; top: 22%; left: 50%; transform: translateX(-50%); width: 520px; max-width: 90%; background: rgba(10,10,20,.82); border: 2px solid #ffe14d; border-radius: 12px; padding: 16px 20px; }
+  #dialog-title { font-size: 20px; color: #ffe14d; margin-bottom: 6px; }
+  #dialog-text { font-size: 15px; line-height: 1.5; }
+  #hud-top-right { position: absolute; top: 12px; right: 14px; text-align: right; }
+  #minimap { border: 2px solid rgba(255,255,255,.7); border-radius: 8px; background: rgba(0,0,0,.4); }
+  #hud-clock { font-size: 20px; font-weight: 700; margin-top: 4px; }
+  #hud-bottom-left { position: absolute; bottom: 14px; left: 14px; font-size: 16px; }
+  #hud-speed { font-size: 26px; font-weight: 800; }
+  #hud-bottom-center { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); text-align: center; width: 60%; }
+  #hud-mission { font-size: 15px; font-weight: 700; color: #ffe14d; }
+  #hud-objective { font-size: 16px; margin-top: 2px; }
+  #hud-message { margin-top: 8px; font-size: 15px; color: #fff; opacity: 0; transition: opacity .3s; }
+  #hud-prompt { display: none; position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,.65); padding: 8px 16px; border-radius: 8px; font-size: 15px; }
+  #damage-flash { position: fixed; inset: 0; z-index: 20; pointer-events: none; background: radial-gradient(ellipse at center, transparent 40%, rgba(255,0,0,.8) 100%); opacity: 0; transition: opacity .15s; }
+  #pause-screen { position: fixed; inset: 0; z-index: 30; display: none; align-items: center; justify-content: center; flex-direction: column; background: rgba(0,0,0,.6); color: #fff; }
+  #pause-screen h1 { font-size: 48px; margin-bottom: 20px; }
+  #crosshair { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%); z-index: 11; color: #fff; font-size: 22px; pointer-events: none; text-shadow: 0 0 4px #000; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.min.js" } }
+</script>
+</head>
+<body>
+<canvas id="game-canvas"></canvas>
+<div id="crosshair">+</div>
+<div id="damage-flash"></div>
+
+<div id="hud" class="hidden">
+  <div id="hud-top-left">
+    <div id="hud-money">$0</div>
+    <div id="hud-wanted">☆☆☆☆☆</div>
+    <div class="bar-row">Health <span id="hud-health">100</span> <span class="bar"><div id="health-bar"></div></span></div>
+    <div class="bar-row">Armor <span id="hud-armor">50</span> <span class="bar"><div id="armor-bar"></div></span></div>
+    <div class="bar-row">Amunisi: <span id="hud-ammo">24</span></div>
+  </div>
+  <div id="hud-top-right">
+    <canvas id="minimap" width="180" height="180"></canvas>
+    <div id="hud-clock">08:00</div>
+  </div>
+  <div id="hud-bottom-left"><div id="hud-speed"></div></div>
+  <div id="hud-bottom-center">
+    <div id="hud-mission">MISI 1/5</div>
+    <div id="hud-objective"></div>
+    <div id="hud-message"></div>
+  </div>
+  <div id="hud-prompt"></div>
+  <div id="dialog-box"><div id="dialog-title"></div><div id="dialog-text"></div></div>
+</div>
+
+<div id="start-screen">
+  <h1>SOL BAY</h1>
+  <h2>Kota pantai yang panas. Utang yang harus dibayar. Satu nama: Raka Santoso.</h2>
+  <div class="sub">Jelajahi kota Sol Bay dengan berjalan kaki atau mencuri mobil, kabur dari polisi,
+    dan selesaikan 5 misi untuk mengalahkan Geng Ombak. Dimainkan dengan keyboard + mouse —
+    klik MULAI, kamera bisa digerakkan dengan mouse (drag bila pointer lock tidak tersedia).</div>
+  <div>
+    <button class="btn" id="btn-start">▶ MULAI</button>
+    <button class="btn secondary" id="btn-continue">Lanjutkan</button>
+    <button class="btn secondary" id="btn-howto">Cara Main</button>
+  </div>
+  <div id="howto">
+    <b>WASD</b> jalan &nbsp;·&nbsp; <b>Shift</b> lari &nbsp;·&nbsp; <b>Spasi</b> lompat / rem tangan di mobil<br>
+    <b>Mouse</b> putar kamera (klik untuk pointer lock, atau drag mouse)<br>
+    <b>E</b> masuk / keluar mobil &nbsp;·&nbsp; <b>W/S</b> gas / rem, <b>A/D</b> belok<br>
+    <b>F</b> pukul &nbsp;·&nbsp; <b>Klik kiri</b> tembak pistol<br>
+    <b>B</b> beli mobil di dealer ($800) &nbsp;·&nbsp; <b>N</b> beli amunisi di dealer ($50)<br>
+    <b>Esc</b> pause &nbsp;·&nbsp; <b>M</b> mute suara &nbsp;·&nbsp; Hindari polisi saat wanted naik!
+  </div>
+</div>
+
+<div id="pause-screen">
+  <h1>JEDA — SOL BAY</h1>
+  <button class="btn" id="btn-resume">Lanjutkan Main</button>
+  <button class="btn secondary" id="btn-save-quit">Simpan &amp; ke Menu</button>
+</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
